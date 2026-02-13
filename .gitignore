@@ -1,2 +1,4 @@
 .direnv/
 .venv/
+marimo/
+__pycache__/

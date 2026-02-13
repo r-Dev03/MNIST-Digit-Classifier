@@ -2,14 +2,16 @@
   inputs = {
     nixpkgs.url = "github:NixOS/nixpkgs/nixos-unstable";
   };
-  outputs = {nixpkgs, ...} @ inputs: let
-    inherit (nixpkgs) lib;
-    withSystem = f:
-      lib.fold lib.recursiveUpdate {}
-      (map f ["x86_64-linux" "x86_64-darwin" "aarch64-linux" "aarch64-darwin"]);
-  in
+  outputs = { nixpkgs, ... } @ inputs:
+    let
+      inherit (nixpkgs) lib;
+      withSystem = f:
+        lib.fold lib.recursiveUpdate { }
+          (map f [ "x86_64-linux" "x86_64-darwin" "aarch64-linux" "aarch64-darwin" ]);
+    in
     withSystem (
-      system: let
+      system:
+      let
         pkgs = import nixpkgs {
           inherit system;
           config.allowUnfree = true;
@@ -19,28 +21,26 @@
         mkShell =
           if stdenv.isLinux
           then pkgs.mkShell
-          else pkgs.mkShell.override {stdenv = pkgs.stdenvNoCC;};
-      in {
+          else pkgs.mkShell.override { stdenv = pkgs.stdenvNoCC; };
+      in
+      {
         devShells.${system}.default =
           mkShell
-          {
-            packages = with pkgs; [
-              python312
-              uv
-            ];
+            {
+              packages = with pkgs; [
+                (python312.withPackages (p: with p; [
+                  jax
+                  jaxtyping
+                  optax
+                  numpy
+                  marimo
+                  anywidget
+                ]))
+              ];
 
-            # Use ipdb
-            PYTHONBREAKPOINT = "ipdb.set_trace";
-            shellHook = ''
-              if [ ! -d .venv ]; then
-                uv venv --python 'python3.12'
-              fi
-              if [ -f requirements.txt ]; then
-                uv pip sync requirements.txt
-              fi
-              source .venv/bin/activate
-            '';
-          };
+              # Use ipdb
+              PYTHONBREAKPOINT = "ipdb.set_trace";
+            };
       }
     );
 }
