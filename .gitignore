@@ -1,4 +1,5 @@
 .direnv/
 .venv/
 marimo/
+weights.pkl
 __pycache__/
