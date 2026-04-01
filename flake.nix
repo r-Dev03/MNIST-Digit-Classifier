@@ -35,6 +35,7 @@
                   numpy
                   marimo
                   anywidget
+                  safetensors
                 ]))
               ];
 

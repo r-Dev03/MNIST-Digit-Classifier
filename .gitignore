@@ -3,3 +3,5 @@
 marimo/
 weights.pkl
 __pycache__/
+export_weights.py
+weights.safetensors
