@@ -1,4 +1,5 @@
 from pathlib import Path
+from safetensors.numpy import save_file
 import typing
 
 import jax
@@ -13,6 +14,7 @@ RANDOM_SEED = 1234
 HIDDEN_NEURONS = 32
 TRAINING_STEPS = 100000
 BATCH_SIZE = 256
+TRAIN_SIZE = 60_000
 SAVE_PATH = Path("weights.pkl")
 
 data = np.load("mnist.npz", allow_pickle=True)
@@ -32,6 +34,10 @@ images = images.astype(float) / images.max()
 labels = jax.nn.one_hot(labels, N_POSSIBLE_NUMBERS)
 print("one-hot labels:", labels.shape)
 
+train_images, test_images = images[:TRAIN_SIZE], images[TRAIN_SIZE:]
+train_labels, test_labels = labels[:TRAIN_SIZE], labels[TRAIN_SIZE:]
+print("train:", train_images.shape, "test:", test_images.shape)
+
 
 rng = np.random.default_rng(RANDOM_SEED)
 
@@ -50,8 +56,8 @@ weights = ModelWeights(
     ),
 )
 
-batch_images = images[:BATCH_SIZE]
-batch_labels = labels[:BATCH_SIZE]
+batch_images = train_images[:BATCH_SIZE]
+batch_labels = train_labels[:BATCH_SIZE]
 
 # print(model(weights, batch_images))
 
@@ -90,8 +96,8 @@ def accuracy(predictions: Array, labels: Array) -> Scalar:
 i = 0
 optimizer_state = optimizer.init(weights)
 for step in range(TRAINING_STEPS):
-    batch_images = images[i : i + BATCH_SIZE]
-    batch_labels = labels[i : i + BATCH_SIZE]
+    batch_images = train_images[i : i + BATCH_SIZE]
+    batch_labels = train_labels[i : i + BATCH_SIZE]
     weights, optimizer_state, loss = training_step(
         weights,
         optimizer_state,
@@ -106,7 +112,21 @@ for step in range(TRAINING_STEPS):
         )
 
     i += BATCH_SIZE
-    if i >= len(images):
+    if i >= len(train_images):
         i = 0
 
+test_accuracy = accuracy(model_forward(weights, test_images), test_labels)
+print(f"Test accuracy: {test_accuracy:%}")
+
 save_weights(weights, SAVE_PATH)
+
+
+save_file(
+    {
+        "w1": np.array(weights.w1),
+        "b1": np.array(weights.b1),
+        "w2": np.array(weights.w2),
+        "b2": np.array(weights.b2),
+    },
+    "weights.safetensors",
+)
